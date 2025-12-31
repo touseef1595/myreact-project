@@ -1,14 +1,17 @@
 import React, { useState, useEffect } from 'react'
 import { FaTimes, FaSpinner } from 'react-icons/fa'
 import { createProduct, updateProduct } from '../../services/productService'
+import { useAuth } from '../../context/AuthContext'
 
 const ProductForm = ({ product, onSuccess, onClose }) => {
+  const { currentUser, userProfile } = useAuth()
   const [formData, setFormData] = useState({
-    title: '',
+    name: '',
     price: '',
     description: '',
     category: '',
-    image: ''
+    imageUrl: '',
+    stock: ''
   })
   const [errors, setErrors] = useState({})
   const [loading, setLoading] = useState(false)
@@ -17,11 +20,12 @@ const ProductForm = ({ product, onSuccess, onClose }) => {
   useEffect(() => {
     if (product) {
       setFormData({
-        title: product.title || '',
+        name: product.name || '',
         price: product.price || '',
         description: product.description || '',
         category: product.category || '',
-        image: product.image || ''
+        imageUrl: product.imageUrl || '',
+        stock: product.stock || ''
       })
     }
   }, [product])
@@ -31,8 +35,8 @@ const ProductForm = ({ product, onSuccess, onClose }) => {
   const validateForm = () => {
     const newErrors = {}
 
-    if (!formData.title.trim()) {
-      newErrors.title = 'Title is required'
+    if (!formData.name.trim()) {
+      newErrors.name = 'Product name is required'
     }
 
     if (!formData.price || isNaN(formData.price) || parseFloat(formData.price) < 0) {
@@ -47,10 +51,12 @@ const ProductForm = ({ product, onSuccess, onClose }) => {
       newErrors.category = 'Category is required'
     }
 
-    if (!formData.image.trim()) {
-      newErrors.image = 'Image URL is required'
-    } else if (!isValidUrl(formData.image)) {
-      newErrors.image = 'Valid image URL is required'
+    if (formData.imageUrl && !isValidUrl(formData.imageUrl)) {
+      newErrors.imageUrl = 'Valid image URL is required'
+    }
+
+    if (formData.stock && (isNaN(formData.stock) || parseInt(formData.stock) < 0)) {
+      newErrors.stock = 'Valid stock quantity is required'
     }
 
     setErrors(newErrors)
@@ -88,25 +94,31 @@ const ProductForm = ({ product, onSuccess, onClose }) => {
       return
     }
 
+    if (!currentUser) {
+      setMessage({ type: 'error', text: 'You must be logged in to manage products' })
+      return
+    }
+
     try {
       setLoading(true)
       setMessage(null)
 
       const productPayload = {
-        title: formData.title.trim(),
+        name: formData.name.trim(),
         price: parseFloat(formData.price),
         description: formData.description.trim(),
         category: formData.category.toLowerCase(),
-        image: formData.image.trim()
+        imageUrl: formData.imageUrl.trim(),
+        stock: formData.stock ? parseInt(formData.stock) : 0
       }
 
       if (product) {
         // UPDATE
-        await updateProduct(product.id, productPayload)
+        await updateProduct(product.id, productPayload, currentUser.uid, userProfile?.role)
         setMessage({ type: 'success', text: 'Product updated successfully!' })
       } else {
         // CREATE
-        await createProduct(productPayload)
+        await createProduct(productPayload, currentUser.uid)
         setMessage({ type: 'success', text: 'Product created successfully!' })
       }
 
@@ -115,61 +127,47 @@ const ProductForm = ({ product, onSuccess, onClose }) => {
       }, 1500)
     } catch (error) {
       console.error('Error saving product:', error)
-      setMessage({ type: 'error', text: 'Failed to save product. Please try again.' })
+      setMessage({ type: 'error', text: error.message || 'Failed to save product. Please try again.' })
     } finally {
       setLoading(false)
     }
   }
 
   return (
-    <form onSubmit={handleSubmit} className="p-8">
-      {/* Header */}
-      <div className="flex justify-between items-center mb-6">
-        <h2 className="text-2xl font-bold">
-          {product ? 'Edit Product' : 'Add New Product'}
-        </h2>
-        <button
-          type="button"
-          onClick={onClose}
-          className="p-2 hover:bg-gray-700 rounded-lg transition"
-        >
-          <FaTimes size={20} />
-        </button>
-      </div>
-
+    <form onSubmit={handleSubmit} className="space-y-5">
       {/* Message */}
       {message && (
-        <div className={`mb-6 p-4 rounded-lg ${
+        <div className={`p-4 rounded-lg ${
           message.type === 'success'
-            ? 'bg-green-500/20 border border-green-500 text-green-300'
-            : 'bg-red-500/20 border border-red-500 text-red-300'
+            ? 'bg-green-50 border border-green-500 text-green-700'
+            : 'bg-red-50 border border-red-500 text-red-700'
         }`}>
           {message.text}
         </div>
       )}
 
       {/* Form Fields */}
-      <div className="space-y-5">
-        {/* Title */}
+      <div className="space-y-4">
+        {/* Product Name */}
         <div>
-          <label className="block text-sm font-medium mb-2">Title *</label>
+          <label className="block text-sm font-medium mb-2 text-gray-700">Product Name *</label>
           <input
             type="text"
-            name="title"
-            value={formData.title}
+            name="name"
+            value={formData.name}
             onChange={handleChange}
-            className={`w-full px-4 py-2 bg-gray-800 border rounded-lg text-white placeholder-gray-500 focus:outline-none transition ${
-              errors.title ? 'border-red-500 focus:border-red-500' : 'border-gray-700 focus:border-purple-500'
+            className={`w-full px-4 py-2 border rounded-lg focus:outline-none transition ${
+              errors.name ? 'border-red-500 focus:border-red-500' : 'border-gray-300 focus:border-purple-500'
             }`}
-            placeholder="Product title"
+            placeholder="Product name"
           />
-          {errors.title && <p className="text-red-400 text-sm mt-1">{errors.title}</p>}
+          {errors.name && <p className="text-red-500 text-sm mt-1">{errors.name}</p>}
         </div>
 
-        {/* Price */}
+        {/* Price and Stock */}
         <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
           <div>
-            <label className="block text-sm font-medium mb-2">Price ($) *</label>
+            <label className="block text-sm font-medium mb-2 text-gray-700">Price ($) *</label>
             <input
               type="number"
               name="price"
@@ -177,71 +175,87 @@ const ProductForm = ({ product, onSuccess, onClose }) => {
               onChange={handleChange}
               step="0.01"
               min="0"
-              className={`w-full px-4 py-2 bg-gray-800 border rounded-lg text-white placeholder-gray-500 focus:outline-none transition ${
-                errors.price ? 'border-red-500 focus:border-red-500' : 'border-gray-700 focus:border-purple-500'
+              className={`w-full px-4 py-2 border rounded-lg focus:outline-none transition ${
+                errors.price ? 'border-red-500 focus:border-red-500' : 'border-gray-300 focus:border-purple-500'
               }`}
               placeholder="0.00"
             />
-            {errors.price && <p className="text-red-400 text-sm mt-1">{errors.price}</p>}
+            {errors.price && <p className="text-red-500 text-sm mt-1">{errors.price}</p>}
           </div>
 
-          {/* Category */}
           <div>
-            <label className="block text-sm font-medium mb-2">Category *</label>
-            <select
-              name="category"
-              value={formData.category}
+            <label className="block text-sm font-medium mb-2 text-gray-700">Stock Quantity</label>
+            <input
+              type="number"
+              name="stock"
+              value={formData.stock}
               onChange={handleChange}
-              className={`w-full px-4 py-2 bg-gray-800 border rounded-lg text-white focus:outline-none transition ${
-                errors.category ? 'border-red-500 focus:border-red-500' : 'border-gray-700 focus:border-purple-500'
+              min="0"
+              className={`w-full px-4 py-2 border rounded-lg focus:outline-none transition ${
+                errors.stock ? 'border-red-500 focus:border-red-500' : 'border-gray-300 focus:border-purple-500'
               }`}
-            >
-              <option value="">Select category</option>
-              {categories.map(cat => (
-                <option key={cat} value={cat}>{cat.charAt(0).toUpperCase() + cat.slice(1)}</option>
-              ))}
-            </select>
-            {errors.category && <p className="text-red-400 text-sm mt-1">{errors.category}</p>}
+              placeholder="0"
+            />
+            {errors.stock && <p className="text-red-500 text-sm mt-1">{errors.stock}</p>}
           </div>
+        </div>
+
+        {/* Category */}
+        <div>
+          <label className="block text-sm font-medium mb-2 text-gray-700">Category *</label>
+          <select
+            name="category"
+            value={formData.category}
+            onChange={handleChange}
+            className={`w-full px-4 py-2 border rounded-lg focus:outline-none transition ${
+              errors.category ? 'border-red-500 focus:border-red-500' : 'border-gray-300 focus:border-purple-500'
+            }`}
+          >
+            <option value="">Select category</option>
+            {categories.map(cat => (
+              <option key={cat} value={cat}>{cat.charAt(0).toUpperCase() + cat.slice(1)}</option>
+            ))}
+          </select>
+          {errors.category && <p className="text-red-500 text-sm mt-1">{errors.category}</p>}
         </div>
 
         {/* Description */}
         <div>
-          <label className="block text-sm font-medium mb-2">Description *</label>
+          <label className="block text-sm font-medium mb-2 text-gray-700">Description *</label>
           <textarea
             name="description"
             value={formData.description}
             onChange={handleChange}
             rows="4"
-            className={`w-full px-4 py-2 bg-gray-800 border rounded-lg text-white placeholder-gray-500 focus:outline-none transition resize-none ${
-              errors.description ? 'border-red-500 focus:border-red-500' : 'border-gray-700 focus:border-purple-500'
+            className={`w-full px-4 py-2 border rounded-lg focus:outline-none transition resize-none ${
+              errors.description ? 'border-red-500 focus:border-red-500' : 'border-gray-300 focus:border-purple-500'
             }`}
             placeholder="Product description"
           />
-          {errors.description && <p className="text-red-400 text-sm mt-1">{errors.description}</p>}
+          {errors.description && <p className="text-red-500 text-sm mt-1">{errors.description}</p>}
         </div>
 
         {/* Image URL */}
         <div>
-          <label className="block text-sm font-medium mb-2">Image URL *</label>
+          <label className="block text-sm font-medium mb-2 text-gray-700">Image URL</label>
           <input
             type="url"
-            name="image"
-            value={formData.image}
+            name="imageUrl"
+            value={formData.imageUrl}
             onChange={handleChange}
-            className={`w-full px-4 py-2 bg-gray-800 border rounded-lg text-white placeholder-gray-500 focus:outline-none transition ${
-              errors.image ? 'border-red-500 focus:border-red-500' : 'border-gray-700 focus:border-purple-500'
+            className={`w-full px-4 py-2 border rounded-lg focus:outline-none transition ${
+              errors.imageUrl ? 'border-red-500 focus:border-red-500' : 'border-gray-300 focus:border-purple-500'
             }`}
             placeholder="https://example.com/image.jpg"
           />
-          {errors.image && <p className="text-red-400 text-sm mt-1">{errors.image}</p>}
+          {errors.imageUrl && <p className="text-red-500 text-sm mt-1">{errors.imageUrl}</p>}
 
           {/* Image Preview */}
-          {formData.image && !errors.image && (
+          {formData.imageUrl && !errors.imageUrl && (
             <div className="mt-3">
-              <p className="text-sm text-gray-400 mb-2">Preview:</p>
+              <p className="text-sm text-gray-500 mb-2">Preview:</p>
               <img
-                src={formData.image}
+                src={formData.imageUrl}
                 alt="Preview"
                 className="w-full h-40 object-cover rounded-lg"
                 onError={(e) => {
@@ -254,7 +268,7 @@ const ProductForm = ({ product, onSuccess, onClose }) => {
       </div>
 
       {/* Buttons */}
-      <div className="flex gap-3 mt-8">
+      <div className="flex gap-3 mt-6">
         <button
           type="submit"
           disabled={loading}
@@ -266,7 +280,7 @@ const ProductForm = ({ product, onSuccess, onClose }) => {
         <button
           type="button"
           onClick={onClose}
-          className="px-6 py-3 border border-gray-700 text-gray-300 font-semibold rounded-lg hover:bg-gray-700 transition"
+          className="px-6 py-3 border border-gray-300 text-gray-700 font-semibold rounded-lg hover:bg-gray-100 transition"
         >
           Cancel
         </button>

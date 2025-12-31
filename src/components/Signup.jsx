@@ -5,11 +5,12 @@ import { FaGoogle, FaShoppingBag, FaEye, FaEyeSlash, FaCheckCircle } from 'react
 
 export default function Signup() {
   const [email, setEmail] = useState('')
+  const [displayName, setDisplayName] = useState('')
   const [password, setPassword] = useState('')
   const [confirmPassword, setConfirmPassword] = useState('')
   const [showPassword, setShowPassword] = useState(false)
   const [showConfirmPassword, setShowConfirmPassword] = useState(false)
-  const { signup, signInWithGoogle } = useAuth()
+  const { signup, loginWithGoogle } = useAuth()
   const navigate = useNavigate()
   const [error, setError] = useState(null)
   const [loading, setLoading] = useState(false)
@@ -35,9 +36,9 @@ export default function Signup() {
 
     try {
       setLoading(true)
-      await signup(email, password)
+      await signup(email, password, displayName)
       setSuccess(true)
-      setTimeout(() => navigate('/'), 2000)
+      setTimeout(() => navigate('/'), 1500)
     } catch (err) {
       setError(err.message)
     } finally {
@@ -49,8 +50,9 @@ export default function Signup() {
     try {
       setError(null)
       setLoading(true)
-      await signInWithGoogle()
-      navigate('/')
+      await loginWithGoogle()
+      setSuccess(true)
+      setTimeout(() => navigate('/'), 1500)
     } catch (err) {
       setError(err.message)
       setLoading(false)
@@ -102,8 +104,21 @@ export default function Signup() {
               </div>
             )}
 
-            {/* Email Input */}
+            {/* Signup Form */}
             <form onSubmit={handleSubmit} className="space-y-5">
+              {/* Display Name Input */}
+              <div>
+                <label className="block text-sm font-semibold text-gray-800 mb-2">Full Name</label>
+                <input
+                  type="text"
+                  value={displayName}
+                  onChange={(e) => setDisplayName(e.target.value)}
+                  placeholder="John Doe"
+                  className="w-full px-4 py-3 border-2 border-gray-300 rounded-lg outline-none transition-all duration-300 focus:border-purple-500 focus:shadow-lg focus:shadow-purple-500/20"
+                />
+              </div>
+
+              {/* Email Input */}
               <div>
                 <label className="block text-sm font-semibold text-gray-800 mb-2">Email Address</label>
                 <input
@@ -181,7 +196,7 @@ export default function Signup() {
             {/* Google Sign Up */}
             <button
               onClick={handleGoogle}
-              disabled={loading}
+              disabled={loading || success}
               className="w-full py-3 border-2 border-gray-300 text-gray-700 font-semibold rounded-lg hover:bg-gray-50 transition-all duration-300 flex items-center justify-center gap-2 disabled:opacity-50 disabled:cursor-not-allowed"
             >
               <FaGoogle className="text-lg" />
@@ -201,5 +216,3 @@ export default function Signup() {
     </div>
   )
 }
-
-

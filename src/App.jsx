@@ -14,6 +14,10 @@ import Admin from './components/pages/Admin'
 import PageNotFound from './components/pages/PageNotFound'
 import Login from './components/Login'
 import Signup from './components/Signup'
+import AdminDashboard from './components/pages/AdminDashboard'
+import UserDashboard from './components/pages/UserDashboard'
+import ProtectedRoute from './components/commons/ProtectedRoute'
+import AdminRoute from './components/commons/AdminRoute'
 import './App.css'
 import { AuthProvider } from './context/AuthContext.jsx'
 
@@ -36,9 +40,37 @@ function App() {
             <Route path="/product/:id" element={<ProductDetail />} />
             <Route path="/cart" element={<Cart />} />
             <Route path="/checkout" element={<Checkout />} />
-            <Route path="/admin" element={<Admin />} />
             <Route path="/login" element={<Login />} />
             <Route path="/signup" element={<Signup />} />
+            
+            {/* Protected Routes */}
+            <Route 
+              path="/user-dashboard" 
+              element={
+                <ProtectedRoute>
+                  <UserDashboard />
+                </ProtectedRoute>
+              } 
+            />
+            
+            {/* Admin Routes */}
+            <Route 
+              path="/admin-dashboard" 
+              element={
+                <AdminRoute>
+                  <AdminDashboard />
+                </AdminRoute>
+              } 
+            />
+            <Route 
+              path="/admin" 
+              element={
+                <AdminRoute>
+                  <Admin />
+                </AdminRoute>
+              } 
+            />
+            
             <Route path="*" element={<PageNotFound />} />
           </Routes>
         </main>

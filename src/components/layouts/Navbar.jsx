@@ -5,14 +5,18 @@ import {
   FaBars, 
   FaTimes, 
   FaSearch, 
-  FaShoppingCart 
+  FaShoppingCart,
+  FaUser,
+  FaSignOutAlt
 } from 'react-icons/fa'
 import { cartCount } from '../../utils/cart'
+import { useAuth } from '../../context/AuthContext'
 
 const Navbar = () => {
   const [isOpen, setIsOpen] = useState(false)
   const [scrolled, setScrolled] = useState(false)
   const [count, setCount] = useState(0)
+  const { currentUser, userProfile, logout } = useAuth()
 
   useEffect(() => {
     const handleScroll = () => setScrolled(window.scrollY > 50)
@@ -38,6 +42,23 @@ const Navbar = () => {
     } else {
       setIsOpen(false)
     }
+  }
+
+  const handleLogout = async () => {
+    try {
+      await logout()
+      navigate('/login')
+      setIsOpen(false)
+    } catch (error) {
+      console.error('Error logging out:', error)
+    }
+  }
+
+  const getDashboardLink = () => {
+    if (userProfile?.role === 'admin') {
+      return '/admin-dashboard'
+    }
+    return '/user-dashboard'
   }
 
   return (
@@ -78,6 +99,16 @@ const Navbar = () => {
                   <span className="absolute bottom-0 left-1/2 w-0 h-0.5 bg-gradient-to-r from-purple-600 to-blue-600 transition-all duration-300 group-hover:w-4/5 group-hover:left-1/10 transform -translate-x-1/2"></span>
                 </a>
               ))}
+              {userProfile?.role === 'admin' && (
+                <a
+                  href="/admin"
+                  onClick={(e) => handleNavClick(e, '/admin')}
+                  className="text-gray-700 font-medium px-4 py-2 rounded-full transition-all duration-300 relative group hover:text-purple-600"
+                >
+                  Admin
+                  <span className="absolute bottom-0 left-1/2 w-0 h-0.5 bg-gradient-to-r from-purple-600 to-blue-600 transition-all duration-300 group-hover:w-4/5 group-hover:left-1/10 transform -translate-x-1/2"></span>
+                </a>
+              )}
             </div>
 
             {/* Search Bar */}
@@ -105,19 +136,40 @@ const Navbar = () => {
                 )}
               </Link>
 
-              <Link
-                to="/login"
-                className="px-4 py-2.5 bg-transparent text-purple-600 border-2 border-purple-600 rounded-full font-medium transition-all duration-300 hover:bg-purple-600 hover:text-white"
-              >
-                Sign in
-              </Link>
+              {currentUser ? (
+                <>
+                  <Link
+                    to={getDashboardLink()}
+                    className="flex items-center gap-2 px-4 py-2.5 bg-purple-50 text-purple-600 rounded-full font-medium transition-all duration-300 hover:bg-purple-100"
+                  >
+                    <FaUser />
+                    <span className="text-sm">{userProfile?.role === 'admin' ? 'Admin' : 'Dashboard'}</span>
+                  </Link>
+                  <button
+                    onClick={handleLogout}
+                    className="flex items-center gap-2 px-4 py-2.5 bg-red-50 text-red-600 rounded-full font-medium transition-all duration-300 hover:bg-red-100"
+                  >
+                    <FaSignOutAlt />
+                    <span className="text-sm">Logout</span>
+                  </button>
+                </>
+              ) : (
+                <>
+                  <Link
+                    to="/login"
+                    className="px-4 py-2.5 bg-transparent text-purple-600 border-2 border-purple-600 rounded-full font-medium transition-all duration-300 hover:bg-purple-600 hover:text-white"
+                  >
+                    Sign in
+                  </Link>
 
-              <Link
-                to="/signup"
-                className="px-6 py-2.5 bg-gradient-to-r from-purple-600 to-blue-600 text-white rounded-full font-medium transition-all duration-300 hover:shadow-xl hover:shadow-purple-500/30"
-              >
-                Sign up
-              </Link>
+                  <Link
+                    to="/signup"
+                    className="px-6 py-2.5 bg-gradient-to-r from-purple-600 to-blue-600 text-white rounded-full font-medium transition-all duration-300 hover:shadow-xl hover:shadow-purple-500/30"
+                  >
+                    Sign up
+                  </Link>
+                </>
+              )}
             </div>
           </div>
 
@@ -153,6 +205,15 @@ const Navbar = () => {
                   {item.label}
                 </a>
               ))}
+              {userProfile?.role === 'admin' && (
+                <a
+                  href="/admin"
+                  onClick={(e) => handleNavClick(e, '/admin')}
+                  className="text-2xl font-medium text-gray-700 transition-all duration-300 hover:text-purple-600 hover:transform hover:scale-110"
+                >
+                  Admin
+                </a>
+              )}
 
               {/* Mobile Search */}
               <div className="relative mt-8">
@@ -166,20 +227,42 @@ const Navbar = () => {
 
               {/* Mobile Auth */}
               <div className="flex flex-col gap-4 mt-8">
-                <Link
-                  to="/login"
-                  onClick={() => setIsOpen(false)}
-                  className="block text-center px-8 py-3 bg-transparent text-purple-600 border-2 border-purple-600 rounded-full font-medium text-lg"
-                >
-                  Sign in
-                </Link>
-                <Link
-                  to="/signup"
-                  onClick={() => setIsOpen(false)}
-                  className="block text-center px-8 py-3 bg-gradient-to-r from-purple-600 to-blue-600 text-white rounded-full font-medium text-lg"
-                >
-                  Sign up
-                </Link>
+                {currentUser ? (
+                  <>
+                    <Link
+                      to={getDashboardLink()}
+                      onClick={() => setIsOpen(false)}
+                      className="flex items-center justify-center gap-2 px-8 py-3 bg-purple-50 text-purple-600 rounded-full font-medium text-lg"
+                    >
+                      <FaUser />
+                      {userProfile?.role === 'admin' ? 'Admin Dashboard' : 'My Dashboard'}
+                    </Link>
+                    <button
+                      onClick={handleLogout}
+                      className="flex items-center justify-center gap-2 px-8 py-3 bg-red-50 text-red-600 rounded-full font-medium text-lg"
+                    >
+                      <FaSignOutAlt />
+                      Logout
+                    </button>
+                  </>
+                ) : (
+                  <>
+                    <Link
+                      to="/login"
+                      onClick={() => setIsOpen(false)}
+                      className="block text-center px-8 py-3 bg-transparent text-purple-600 border-2 border-purple-600 rounded-full font-medium text-lg"
+                    >
+                      Sign in
+                    </Link>
+                    <Link
+                      to="/signup"
+                      onClick={() => setIsOpen(false)}
+                      className="block text-center px-8 py-3 bg-gradient-to-r from-purple-600 to-blue-600 text-white rounded-full font-medium text-lg"
+                    >
+                      Sign up
+                    </Link>
+                  </>
+                )}
               </div>
             </div>
           </div>

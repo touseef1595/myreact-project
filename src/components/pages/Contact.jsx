@@ -34,7 +34,7 @@ const Contact = () => {
   }
 
   const handleSubmit = (e) => {
-    e.preventDefault()
+    
     const v = validate()
     if (Object.keys(v).length) return setErrors(v)
     setSubmitting(true)
@@ -106,8 +106,13 @@ const Contact = () => {
             <p className="text-xl text-gray-600">Fill out the form below and we'll respond as soon as possible</p>
           </div>
 
-          <form onSubmit={handleSubmit} className="bg-gradient-to-br from-gray-50 to-gray-100 p-10 rounded-2xl shadow-lg border border-purple-200">
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+          <form 
+            action="https://formspree.io/f/mrebzdqw"
+            method="POST"
+            onSubmit={handleSubmit} 
+            className="bg-gradient-to-br from-gray-50 to-gray-100 p-10 rounded-2xl shadow-lg border border-purple-200">
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-6"
+            >
               {/* Field 1: Full Name */}
               <div>
                 <InputField
